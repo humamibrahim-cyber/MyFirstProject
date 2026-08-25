@@ -1,12 +1,27 @@
-print("Simple Calculator")
-
-
-def format_number(number):
+def format_number(number: float) -> str:
     """Display whole numbers without an unnecessary .0."""
     return f"{number:g}"
 
 
-def show_calculation(first_number, operation, second_number, result):
+def calculate(first_number: float, operation: str, second_number: float) -> float:
+    """Calculate and return the result of a supported arithmetic operation."""
+    if operation == "+":
+        return first_number + second_number
+    if operation == "-":
+        return first_number - second_number
+    if operation == "*":
+        return first_number * second_number
+    if operation == "/":
+        if second_number == 0:
+            raise ZeroDivisionError("Cannot divide by zero.")
+        return first_number / second_number
+
+    raise ValueError("Invalid operation. Please use +, -, *, or /.")
+
+
+def show_calculation(
+    first_number: float, operation: str, second_number: float, result: float
+) -> None:
     """Show a simple visual explanation of how the answer was calculated."""
     operation_names = {
         "+": "Add the two numbers",
@@ -29,11 +44,17 @@ def show_calculation(first_number, operation, second_number, result):
     print(f"   {answer:>{width}}")
 
 
-def show_calculation_graph(first_number, operation, second_number, result):
+def show_calculation_graph(
+    first_number: float, operation: str, second_number: float, result: float
+) -> None:
     """Open a window containing a bar graph of the calculation values."""
     try:
         import tkinter as tk
+    except ImportError:
+        print("Graph could not be opened because Tkinter is not installed.")
+        return
 
+    try:
         window = tk.Tk()
         window.title("Calculation Visualization")
         window.resizable(False, False)
@@ -45,6 +66,11 @@ def show_calculation_graph(first_number, operation, second_number, result):
             window, width=canvas_width, height=canvas_height, bg="white"
         )
         canvas.pack(padx=12, pady=12)
+
+        close_button = tk.Button(
+            window, text="Close", command=window.destroy, width=12
+        )
+        close_button.pack(pady=(0, 12))
 
         equation = (
             f"{format_number(first_number)} {operation} "
@@ -103,34 +129,35 @@ def show_calculation_graph(first_number, operation, second_number, result):
                 font=("Arial", 11, "bold"),
             )
 
+        # Keep the graph visible briefly, while still allowing the program to end.
+        window.after(5000, window.destroy)
         window.mainloop()
-    except Exception:
-        print("Graph could not be opened on this computer.")
+    except tk.TclError as error:
+        print(f"Graph could not be opened: {error}")
 
-try:
-    first_number = float(input("Enter the first number: "))
-    operation = input("Enter an operation (+, -, *, /): ")
-    second_number = float(input("Enter the second number: "))
 
-    if operation == "+":
-        result = first_number + second_number
-    elif operation == "-":
-        result = first_number - second_number
-    elif operation == "*":
-        result = first_number * second_number
-    elif operation == "/":
-        if second_number == 0:
-            raise ZeroDivisionError
-        result = first_number / second_number
-    else:
-        result = None
-        print("Invalid operation. Please use +, -, *, or /.")
+def main() -> None:
+    """Run the interactive calculator."""
+    print("Simple Calculator")
 
-    if result is not None:
-        show_calculation(first_number, operation, second_number, result)
-        print(f"\nResult: {format_number(result)}")
-        show_calculation_graph(first_number, operation, second_number, result)
-except ValueError:
-    print("Invalid input. Please enter valid numbers.")
-except ZeroDivisionError:
-    print("Cannot divide by zero.")
+    try:
+        first_number = float(input("Enter the first number: ").strip())
+        operation = input("Enter an operation (+, -, *, /): ").strip()
+        second_number = float(input("Enter the second number: ").strip())
+    except ValueError:
+        print("Invalid input. Please enter valid numbers.")
+        return
+
+    try:
+        result = calculate(first_number, operation, second_number)
+    except (ValueError, ZeroDivisionError) as error:
+        print(error)
+        return
+
+    show_calculation(first_number, operation, second_number, result)
+    print(f"\nResult: {format_number(result)}")
+    show_calculation_graph(first_number, operation, second_number, result)
+
+
+if __name__ == "__main__":
+    main()
