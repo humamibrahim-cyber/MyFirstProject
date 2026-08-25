@@ -1,2 +1,3 @@
 name = input("What is your name? ")
-print(f"Hello {name}, welcome to Codex!")
+age = input("How old are you? ")
+print(f"Hello {name}, you are {age} years old. Welcome to Codex!")
