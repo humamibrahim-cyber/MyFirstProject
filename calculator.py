@@ -1,52 +1,86 @@
+import operator
+from typing import Callable, NamedTuple
+
+# Each operation maps to the function that performs it and the sentence used to
+# explain it. Adding a new operation only requires a new entry here.
+OPERATIONS: dict[str, tuple[Callable[[float, float], float], str]] = {
+    "+": (operator.add, "Add the two numbers"),
+    "-": (operator.sub, "Subtract the second number from the first"),
+    "*": (operator.mul, "Multiply the two numbers"),
+    "/": (operator.truediv, "Divide the first number by the second"),
+}
+
+
+class Calculation(NamedTuple):
+    """One completed calculation, kept together so it cannot be mis-ordered."""
+
+    first_number: float
+    operation: str
+    second_number: float
+    result: float
+
+
 def format_number(number: float) -> str:
-    """Display whole numbers without an unnecessary .0."""
-    return f"{number:g}"
+    """Display whole numbers without an unnecessary .0.
+
+    15 significant digits is the most a float can be trusted to carry, so this
+    shows large values in full while still hiding binary rounding noise such as
+    the trailing digits of 0.1 + 0.2.
+    """
+    return f"{number:.15g}"
 
 
 def calculate(first_number: float, operation: str, second_number: float) -> float:
     """Calculate and return the result of a supported arithmetic operation."""
-    if operation == "+":
-        return first_number + second_number
-    if operation == "-":
-        return first_number - second_number
-    if operation == "*":
-        return first_number * second_number
-    if operation == "/":
-        if second_number == 0:
-            raise ZeroDivisionError("Cannot divide by zero.")
-        return first_number / second_number
+    if operation not in OPERATIONS:
+        raise ValueError("Invalid operation. Please use +, -, *, or /.")
+    if operation == "/" and second_number == 0:
+        raise ZeroDivisionError("Cannot divide by zero.")
 
-    raise ValueError("Invalid operation. Please use +, -, *, or /.")
+    apply_operation, _ = OPERATIONS[operation]
+    return apply_operation(first_number, second_number)
 
 
-def show_calculation(
-    first_number: float, operation: str, second_number: float, result: float
-) -> None:
+def read_float(prompt: str) -> float:
+    """Ask for a number until a valid one is entered."""
+    while True:
+        try:
+            return float(input(prompt))
+        except ValueError:
+            print("Invalid input. Please enter a valid number.")
+
+
+def read_operation(prompt: str) -> str:
+    """Ask for an operation until a supported one is entered."""
+    while True:
+        operation = input(prompt).strip()
+        if operation in OPERATIONS:
+            return operation
+        print("Invalid operation. Please use +, -, *, or /.")
+
+
+def show_calculation(calculation: Calculation) -> None:
     """Show a simple visual explanation of how the answer was calculated."""
-    operation_names = {
-        "+": "Add the two numbers",
-        "-": "Subtract the second number from the first",
-        "*": "Multiply the two numbers",
-        "/": "Divide the first number by the second",
-    }
+    first = format_number(calculation.first_number)
+    second = format_number(calculation.second_number)
+    answer = format_number(calculation.result)
 
-    first = format_number(first_number)
-    second = format_number(second_number)
-    answer = format_number(result)
-    width = max(len(first), len(second) + 2, len(answer))
+    # The operator sits in its own two-character column to the left of the
+    # numbers, so the number column width depends only on the numbers.
+    operator_column = 2
+    width = max(len(first), len(second), len(answer))
+    _, description = OPERATIONS[calculation.operation]
 
     print("\nHow the result was calculated:")
-    print(f"1. {operation_names[operation]}")
-    print(f"2. {first} {operation} {second} = {answer}\n")
-    print(f"   {first:>{width}}")
-    print(f" {operation} {second:>{width - 2}}")
-    print(f"   {'-' * width}")
-    print(f"   {answer:>{width}}")
+    print(f"1. {description}")
+    print(f"2. {first} {calculation.operation} {second} = {answer}\n")
+    print(f"{'':>{operator_column}}{first:>{width}}")
+    print(f"{calculation.operation:<{operator_column}}{second:>{width}}")
+    print(f"{'':>{operator_column}}{'-' * width}")
+    print(f"{'':>{operator_column}}{answer:>{width}}")
 
 
-def show_calculation_graph(
-    first_number: float, operation: str, second_number: float, result: float
-) -> None:
+def show_calculation_graph(calculation: Calculation) -> None:
     """Open a window containing a bar graph of the calculation values."""
     try:
         import tkinter as tk
@@ -59,9 +93,12 @@ def show_calculation_graph(
         window.title("Calculation Visualization")
         window.resizable(False, False)
 
-        canvas_width = 680
+        canvas_width = 760
         canvas_height = 390
-        zero_x = canvas_width // 2
+        # Labels get a reserved gutter on the left so a long negative bar can
+        # never grow underneath them.
+        label_gutter = 140
+        zero_x = (label_gutter + canvas_width - 40) // 2
         canvas = tk.Canvas(
             window, width=canvas_width, height=canvas_height, bg="white"
         )
@@ -73,8 +110,9 @@ def show_calculation_graph(
         close_button.pack(pady=(0, 12))
 
         equation = (
-            f"{format_number(first_number)} {operation} "
-            f"{format_number(second_number)} = {format_number(result)}"
+            f"{format_number(calculation.first_number)} {calculation.operation} "
+            f"{format_number(calculation.second_number)} = "
+            f"{format_number(calculation.result)}"
         )
         canvas.create_text(
             canvas_width // 2,
@@ -91,14 +129,13 @@ def show_calculation_graph(
             fill="#475569",
         )
 
-        values = [first_number, second_number, result]
-        largest_value = max(abs(value) for value in values) or 1
-        scale = 245 / largest_value
         rows = [
-            ("First number", first_number, "#3b82f6"),
-            ("Second number", second_number, "#f59e0b"),
-            ("Result", result, "#22c55e"),
+            ("First number", calculation.first_number, "#3b82f6"),
+            ("Second number", calculation.second_number, "#f59e0b"),
+            ("Result", calculation.result, "#22c55e"),
         ]
+        largest_value = max(abs(value) for _, value, _ in rows) or 1
+        scale = 215 / largest_value
 
         # The center line represents zero. Negative bars go left; positive bars go right.
         canvas.create_line(zero_x, 100, zero_x, 340, fill="#64748b", width=2)
@@ -129,8 +166,6 @@ def show_calculation_graph(
                 font=("Arial", 11, "bold"),
             )
 
-        # Keep the graph visible briefly, while still allowing the program to end.
-        window.after(5000, window.destroy)
         window.mainloop()
     except tk.TclError as error:
         print(f"Graph could not be opened: {error}")
@@ -141,11 +176,11 @@ def main() -> None:
     print("Simple Calculator")
 
     try:
-        first_number = float(input("Enter the first number: ").strip())
-        operation = input("Enter an operation (+, -, *, /): ").strip()
-        second_number = float(input("Enter the second number: ").strip())
-    except ValueError:
-        print("Invalid input. Please enter valid numbers.")
+        first_number = read_float("Enter the first number: ")
+        operation = read_operation("Enter an operation (+, -, *, /): ")
+        second_number = read_float("Enter the second number: ")
+    except (EOFError, KeyboardInterrupt):
+        print("\nCancelled.")
         return
 
     try:
@@ -154,9 +189,10 @@ def main() -> None:
         print(error)
         return
 
-    show_calculation(first_number, operation, second_number, result)
+    calculation = Calculation(first_number, operation, second_number, result)
+    show_calculation(calculation)
     print(f"\nResult: {format_number(result)}")
-    show_calculation_graph(first_number, operation, second_number, result)
+    show_calculation_graph(calculation)
 
 
 if __name__ == "__main__":
