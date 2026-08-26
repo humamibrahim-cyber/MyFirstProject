@@ -3,7 +3,7 @@ print("Simple Calculator")
 
 def format_number(number):
     """Display whole numbers without an unnecessary .0."""
-    return f"{number:g}"
+    return f"{number:.12g}"
 
 
 def show_calculation(first_number, operation, second_number, result):
@@ -13,18 +13,21 @@ def show_calculation(first_number, operation, second_number, result):
         "-": "Subtract the second number from the first",
         "*": "Multiply the two numbers",
         "/": "Divide the first number by the second",
+        "**": "Raise the first number to the power of the second",
+        "//": "Divide, then keep only the whole number part",
+        "%": "Divide, then keep only the remainder",
     }
 
     first = format_number(first_number)
     second = format_number(second_number)
     answer = format_number(result)
-    width = max(len(first), len(second) + 2, len(answer))
+    width = max(len(first), len(second), len(answer))
 
     print("\nHow the result was calculated:")
     print(f"1. {operation_names[operation]}")
     print(f"2. {first} {operation} {second} = {answer}\n")
     print(f"   {first:>{width}}")
-    print(f" {operation} {second:>{width - 2}}")
+    print(f" {operation:<2}{second:>{width}}")
     print(f"   {'-' * width}")
     print(f"   {answer:>{width}}")
 
@@ -109,7 +112,7 @@ def show_calculation_graph(first_number, operation, second_number, result):
 
 try:
     first_number = float(input("Enter the first number: "))
-    operation = input("Enter an operation (+, -, *, /): ")
+    operation = input("Enter an operation (+, -, *, /, **, //, %): ")
     second_number = float(input("Enter the second number: "))
 
     if operation == "+":
@@ -122,9 +125,19 @@ try:
         if second_number == 0:
             raise ZeroDivisionError
         result = first_number / second_number
+    elif operation == "**":
+        result = first_number ** second_number
+    elif operation == "//":
+        if second_number == 0:
+            raise ZeroDivisionError
+        result = first_number // second_number
+    elif operation == "%":
+        if second_number == 0:
+            raise ZeroDivisionError
+        result = first_number % second_number
     else:
         result = None
-        print("Invalid operation. Please use +, -, *, or /.")
+        print("Invalid operation. Please use +, -, *, /, **, // or %.")
 
     if result is not None:
         show_calculation(first_number, operation, second_number, result)
