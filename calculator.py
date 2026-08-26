@@ -8,7 +8,13 @@ OPERATIONS: dict[str, tuple[Callable[[float, float], float], str]] = {
     "-": (operator.sub, "Subtract the second number from the first"),
     "*": (operator.mul, "Multiply the two numbers"),
     "/": (operator.truediv, "Divide the first number by the second"),
+    "**": (operator.pow, "Raise the first number to the power of the second"),
+    "//": (operator.floordiv, "Divide, then keep only the whole number part"),
+    "%": (operator.mod, "Divide, then keep only the remainder"),
 }
+
+# Built from OPERATIONS so prompts and error messages stay in step with it.
+SUPPORTED_OPERATIONS = ", ".join(OPERATIONS)
 
 
 class Calculation(NamedTuple):
@@ -33,8 +39,8 @@ def format_number(number: float) -> str:
 def calculate(first_number: float, operation: str, second_number: float) -> float:
     """Calculate and return the result of a supported arithmetic operation."""
     if operation not in OPERATIONS:
-        raise ValueError("Invalid operation. Please use +, -, *, or /.")
-    if operation == "/" and second_number == 0:
+        raise ValueError(f"Invalid operation. Please use {SUPPORTED_OPERATIONS}.")
+    if operation in {"/", "//", "%"} and second_number == 0:
         raise ZeroDivisionError("Cannot divide by zero.")
 
     apply_operation, _ = OPERATIONS[operation]
@@ -56,7 +62,7 @@ def read_operation(prompt: str) -> str:
         operation = input(prompt).strip()
         if operation in OPERATIONS:
             return operation
-        print("Invalid operation. Please use +, -, *, or /.")
+        print(f"Invalid operation. Please use {SUPPORTED_OPERATIONS}.")
 
 
 def show_calculation(calculation: Calculation) -> None:
@@ -177,7 +183,7 @@ def main() -> None:
 
     try:
         first_number = read_float("Enter the first number: ")
-        operation = read_operation("Enter an operation (+, -, *, /): ")
+        operation = read_operation(f"Enter an operation ({SUPPORTED_OPERATIONS}): ")
         second_number = read_float("Enter the second number: ")
     except (EOFError, KeyboardInterrupt):
         print("\nCancelled.")
