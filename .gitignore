@@ -1,0 +1,7 @@
+# Python bytecode -- regenerated on every run, never worth committing
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
